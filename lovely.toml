@@ -1,0 +1,115 @@
+[manifest]
+dump_lua = true
+priority = 0
+version = "1.0.0"
+
+# Utilitools requirement ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+[[patches]]
+[patches.pattern]
+match_indent = true
+pattern = '''cs = bs.load(project.initState)'''
+payload = '''
+if mods.utilitools == nil then
+	local buttonPressed = love.window.showMessageBox("Audio Offset", "Audio Offset requires Utilitools. Please install that mod.", { "Ok", "No" })
+	if buttonPressed == 2 then error("Audio Offset: This is what you get for not installing Utilitools even though this mod needs it") end
+	love.quit()
+	error("Audio Offset: Failed to quit game.")
+end'''
+position = "after"
+target = "main.lua"
+times = 1
+
+# Song offset ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+[[patches]]
+[patches.regex]
+pattern = '''(?<stuff>timeOffsetSeconds) ?= ?(?<stuff2>[^,]*)'''
+payload = '''$stuff = mods.audio_offset.config.audioOffset + ($stuff2 or 0)'''
+position = "at"
+target = "levelformat/events/Gameplay/play.lua"
+
+# Audio feedback ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+[[patches]]
+[patches.regex]
+line_prepend = "$indent"
+pattern = '''(?<indent>[^\S\n]*)(?<stuff>te\.playOne\(sounds\.(barely|mine)[^\n]*)'''
+payload = '''
+if mods.audio_offset.config.audioFeedback then
+	$stuff
+end'''
+position = "at"
+target = [
+  "obj/notes/Block.lua",
+  "obj/notes/Hold.lua",
+]
+
+# Gameplay offset ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+[[patches]]
+[patches.regex]
+pattern = '''savedata\.options\.audio\.hitsounds'''
+payload = '''and (not mods.audio_offset.config.audioGameplayOffset or mods.audio_offset.config.audioOffset <= 0)'''
+position = "after"
+target = [
+  "obj/notes/Block.lua",
+  "obj/notes/ExtraTap.lua",
+  "obj/notes/Hold.lua",
+  "obj/notes/Side.lua",
+]
+
+[[patches]]
+[patches.regex]
+line_prepend = "$indent"
+pattern = '''\n(?<indent>[^\n\S]*)(?<line>te\.playOne\((sounds|self)\.(?<soundName>[^,]+), ?("static"|'static'), ?("sfx"|'sfx'), ?(?<volume>[^\n\r]+))'''
+payload = '''
+
+if not mods.audio_offset.config.audioGameplayOffset or mods.audio_offset.config.audioOffset == 0 then
+	$line
+else
+	local beat = utilitools.timing.getBeat(self.hb, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
+	local sound = "$soundName" ~= "hitsound" and "$soundName" or self.name == "side" and "side" or "block"
+	table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = ($volume, pitch = 1, sound = sound })
+	cs.playEventsSorted = false
+end'''
+position = "at"
+target = [
+  "obj/notes/Block.lua",
+  "obj/notes/ExtraTap.lua",
+  "obj/notes/Hold.lua",
+  "obj/notes/Side.lua",
+]
+
+[[patches]]
+[patches.pattern]
+match_indent = false
+pattern = '''
+	self:checkEvent(v,'onLoad')
+end
+self:runQueuedEvents()'''
+payload = '''
+	if mods.audio_offset.config.audioGameplayOffset and mods.audio_offset.config.audioOffset > 0 then
+		local function insertSound(time, type, tap, second)
+			local beat = utilitools.timing.getBeat(time, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
+			if type ~= "extraTap" then
+				local sound = "block"
+				if type == "side" then sound = "side" end
+				if type == "hold" and not second then sound = "hold" end
+				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(math.min(1, cs.noteVolume)), pitch = 1, sound = sound })
+				cs.playEventsSorted = false
+			end
+			if tap or type == "extraTap" then
+				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(0.5 * math.min(1, cs.noteVolume)), pitch = 1, sound = "tap" })
+				cs.playEventsSorted = false
+			end
+		end
+		for i = #cs.playEvents, 1, -1 do
+			local event = cs.playEvents[i]
+			local type = event.type
+			if ({ block = true, bounce = true, extraTap = true, hold = true, inverse = true, side = true })[type] then
+				local time = event.time
+				insertSound(time, type, (type == "hold" and event.startTap) or (type ~= "hold" and event.tap))
+				if type == "hold" then insertSound(time + (event.duration or 1), type, event.endTap, true) end
+				if type == "bounce" then for i = 1, event.bounces or 1 do insertSound(time + (event.delay or 1) * i, type, event.tap) end end
+			end
+		end
+	end'''
+position = "after"
+target = "obj/GameManager.lua"
