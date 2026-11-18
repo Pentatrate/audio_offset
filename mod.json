@@ -3,6 +3,6 @@
 	"name": "Audio Offset",
 	"version": "1.0.0",
 	"author": "Pentatrate",
-	"description": "Allows for offsetting the audio in addition to adjusting the input delay.",
+	"description": "Allows for offsetting the audio delay in addition to the vanilla input delay feature.",
 	"config": {}
 }
