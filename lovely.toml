@@ -65,7 +65,8 @@ if not mods.audio_offset.config.audioGameplayOffset or mods.audio_offset.config.
 	$line
 else
 	local beat = utilitools.timing.getBeat(self.hb, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
-	local sound = "$soundName" ~= "hitsound" and "$soundName" or self.name == "side" and "side" or "block"
+	local lemonTweaks = mods.lemontweaks and mods.lemontweaks.enabled and sounds.block and true or false
+	local sound = "$soundName" ~= "hitsound" and "$soundName" or lemonTweaks and (self.name == "side" and "side" or "block") or "click"
 	table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = ($volume, pitch = 1, sound = sound })
 	cs.playEventsSorted = false
 end'''
@@ -88,9 +89,10 @@ payload = '''
 	if mods.audio_offset.config.audioGameplayOffset and mods.audio_offset.config.audioOffset > 0 then
 		local function insertSound(time, type, tap, second)
 			local beat = utilitools.timing.getBeat(time, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
+			local lemonTweaks = mods.lemontweaks and mods.lemontweaks.enabled and sounds.block and true or false
 			if type ~= "extraTap" then
-				local sound = "block"
-				if type == "side" then sound = "side" end
+				local sound = lemonTweaks and "block" or "click"
+				if lemonTweaks and type == "side" then sound = "side" end
 				if type == "hold" and not second then sound = "hold" end
 				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(math.min(1, cs.noteVolume)), pitch = 1, sound = sound })
 				cs.playEventsSorted = false
