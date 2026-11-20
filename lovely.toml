@@ -66,7 +66,14 @@ if not mods.audio_offset.config.audioGameplayOffset or mods.audio_offset.config.
 else
 	local beat = utilitools.timing.getBeat(self.hb, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
 	local lemonTweaks = mods.lemontweaks and mods.lemontweaks.enabled and sounds.block and true or false
-	local sound = "$soundName" ~= "hitsound" and "$soundName" or lemonTweaks and (self.name == "side" and "side" or "block") or "click"
+	local sound
+	if "$soundName" ~= "hitsound" then
+		sound = "$soundName"
+	elseif lemonTweaks then
+		sound = self.name == "side" and "side" or "block"
+	else
+		sound = "click"
+	end
 	table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = ($volume, pitch = 1, sound = sound })
 	cs.playEventsSorted = false
 end'''

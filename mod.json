@@ -1,7 +1,7 @@
 {
 	"id": "audio_offset",
 	"name": "Audio Offset",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"author": "Pentatrate",
 	"description": "Allows for offsetting the audio delay in addition to the vanilla input delay feature.",
 	"config": {}
