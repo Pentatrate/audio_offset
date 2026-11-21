@@ -83,7 +83,7 @@ else
 	else
 		sound = "click"
 	end
-	table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = ($volume, pitch = 1, sound = sound })
+	table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = ($volume, pitch = 1, sound = sound, isModAudioOffset = true })
 	cs.playEventsSorted = false
 end'''
 position = "at"
@@ -110,11 +110,11 @@ payload = '''
 				local sound = lemonTweaks and "block" or "click"
 				if lemonTweaks and type == "side" then sound = "side" end
 				if type == "hold" and not second then sound = "hold" end
-				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(math.min(1, cs.noteVolume)), pitch = 1, sound = sound })
+				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(math.min(1, cs.noteVolume)), pitch = 1, sound = sound, isModAudioOffset = true })
 				cs.playEventsSorted = false
 			end
 			if tap or type == "extraTap" then
-				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(0.5 * math.min(1, cs.noteVolume)), pitch = 1, sound = "tap" })
+				table.insert(cs.playEvents, { angle = 0, time = beat, type = "playSound", volume = tostring(0.5 * math.min(1, cs.noteVolume)), pitch = 1, sound = "tap", isModAudioOffset = true })
 				cs.playEventsSorted = false
 			end
 		end
@@ -132,5 +132,13 @@ payload = '''
 			end
 		end
 	end'''
+position = "after"
+target = "obj/GameManager.lua"
+
+[[patches]]
+[patches.pattern]
+match_indent = false
+pattern = '''Event.info[v.event.type].allowInNoVFX or 		-- allowInNoVFX, or'''
+payload = '''v.event.isModAudioOffset or					-- is hitsound but offset, or'''
 position = "after"
 target = "obj/GameManager.lua"
