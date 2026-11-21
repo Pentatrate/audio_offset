@@ -23,9 +23,18 @@ times = 1
 [[patches]]
 [patches.regex]
 pattern = '''(?<stuff>timeOffsetSeconds) ?= ?(?<stuff2>[^,]*)'''
-payload = '''$stuff = mods.audio_offset.config.audioOffset + ($stuff2 or 0)'''
+payload = '''$stuff = mods.audio_offset.config.audioOffset * utilitools.timing.getActiveRatemod() + ($stuff2 or 0)'''
 position = "at"
 target = "levelformat/events/Gameplay/play.lua"
+
+[[patches]]
+[patches.pattern]
+match_indent = true
+pattern = '''cs.songOffset = event.time'''
+payload = '''cs.songOffset = event.origTime or event.time'''
+position = "at"
+target = "levelformat/events/Gameplay/play.lua"
+times = 1
 
 # Audio feedback ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
 [[patches]]
@@ -93,7 +102,7 @@ pattern = '''
 end
 self:runQueuedEvents()'''
 payload = '''
-	if mods.audio_offset.config.audioGameplayOffset and mods.audio_offset.config.audioOffset > 0 then
+	if mods.audio_offset.config.audioOffset > 0 then
 		local function insertSound(time, type, tap, second)
 			local beat = utilitools.timing.getBeat(time, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
 			local lemonTweaks = mods.lemontweaks and mods.lemontweaks.enabled and sounds.block and true or false
@@ -112,11 +121,14 @@ payload = '''
 		for i = #cs.playEvents, 1, -1 do
 			local event = cs.playEvents[i]
 			local type = event.type
-			if ({ block = true, bounce = true, extraTap = true, hold = true, inverse = true, side = true })[type] then
-				local time = event.time
+			local time = event.time
+			if mods.audio_offset.config.audioGameplayOffset and ({ block = true, bounce = true, extraTap = true, hold = true, inverse = true, side = true })[type] then
 				insertSound(time, type, (type == "hold" and event.startTap) or (type ~= "hold" and event.tap))
 				if type == "hold" then insertSound(time + (event.duration or 1), type, event.endTap, true) end
 				if type == "bounce" then for i = 1, event.bounces or 1 do insertSound(time + (event.delay or 1) * i, type, event.tap) end end
+			elseif type == "play" then
+				event.origTime = event.time
+				event.time = utilitools.timing.getBeat(time, -mods.audio_offset.config.audioOffset * 1000, utilitools.timing.getActiveTiming())
 			end
 		end
 	end'''
